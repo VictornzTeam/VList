@@ -1,5 +1,5 @@
 @font-face {
-  font-family: 'minecraft'; /* Nama bebas */
+  font-family: 'minecraft';
   src: url('minercraftory.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
@@ -12,9 +12,6 @@ body {
   line-height: 1.6;
 }
 
-/* ========================= */
-/* HEADER DI ATAS */
-/* ========================= */
 .header {
   position: fixed;
   top: 0;
@@ -33,9 +30,6 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-/* ========================= */
-/* TOMBOL GARIS 3 (MENU ICON) */
-/* ========================= */
 .menu-btn {
   position: fixed;
   top: 0px;
@@ -52,18 +46,15 @@ body {
   transform: scale(1.1);
 }
 
-/* ========================= */
-/* SIDEBAR KIRI */
-/* ========================= */
 .sidebar {
   position: fixed;
   top: 0;
-  left: -240px; /* Awalnya tersembunyi */
+  left: -240px;
   width: 220px;
   height: 100%;
   background-color: #1f1f1f;
   color: #fff;
-  padding-top: 45px; /* supaya tidak ketutupan header */
+  padding-top: 45px;
   transition: left 0.3s ease;
   box-sizing: border-box;
   box-shadow: 3px 0 12px rgba(0, 0, 0, 0.4);
@@ -73,14 +64,10 @@ body {
   justify-content: space-between;
 }
 
-/* Saat aktif, sidebar muncul */
 .sidebar.active {
   left: 0;
 }
 
-/* ========================= */
-/* LINK MENU DI DALAM SIDEBAR */
-/* ========================= */
 .sidebar a {
   display: flex;
   align-items: center;
@@ -100,31 +87,28 @@ body {
 
 @media (max-width: 768px) {
   .sidebar-menu {
-    margin-top: -300px; /* di layar kecil jangan terlalu rapat */
+    margin-top: -300px;
   }
 }
 
-/* ===== SIDEBAR HEADER ===== */
 .sidebar-header {
   display: flex;
   align-items: flex-end;
-  gap: -2px;                 /* jarak antara logo dan teks */
-  padding: 18px 20px;        /* ruang di dalam header sidebar */
-  background-color: #1c1c1c; /* sedikit lebih gelap dari body sidebar */
+  gap: -2px;
+  padding: 18px 20px;
+  background-color: #1c1c1c;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-sizing: border-box;
 }
 
-/* Logo di sidebar */
 .sidebar-header img {
   width: 42px;
   height: 42px;
-  border-radius: 8px;        /* biar kelihatan smooth */
+  border-radius: 8px;
   object-fit: cover;
   flex-shrink: 0;
 }
 
-/* Teks nama tim (misal: Victornz) */
 .sidebar-header h2 {
   margin: 0;
   font-size: 20px;
@@ -134,7 +118,6 @@ body {
   text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
-/* Saat sidebar hover, beri sedikit highlight */
 .sidebar-header:hover {
   background-color: #252525;
   transition: background-color 0.25s ease;
@@ -146,7 +129,6 @@ body {
   transform: translateX(4px);
 }
 
-/* Active link (opsional, jika mau tandai halaman aktif) */
 .sidebar a.active {
   background-color: #2b2b2b;
   border-left: 4px solid #f7b500;
@@ -157,8 +139,8 @@ body {
   width: 50px !important;
   height: 50px !important;
   border-radius: 10px;
-  object-fit: cover;    /* biar proporsional dan nggak gepeng */
-  filter: none !important;  /* pastikan warnanya asli */
+  object-fit: cover;
+  filter: none !important;
   transition: transform 0.3s ease;
 }
 
@@ -166,9 +148,6 @@ body {
   transform: scale(1.05);
 }
 
-/* ========================= */
-/* ICON DI DALAM MENU */
-/* ========================= */
 .sidebar img {
   width: 22px;
   height: 22px;
@@ -181,9 +160,6 @@ body {
   filter: brightness(0) invert(0.8) sepia(1) hue-rotate(15deg) saturate(4);
 }
 
-/* ========================= */
-/* FOOTER SIDEBAR (OPSIONAL) */
-/* ========================= */
 .sidebar-footer {
   text-align: center;
   padding: 16px;
@@ -192,9 +168,6 @@ body {
   border-top: 1px solid #333;
 }
 
-/* ========================= */
-/* RESPONSIVE MOBILE */
-/* ========================= */
 @media (max-width: 768px) {
   .sidebar {
     width: 200px;
@@ -248,9 +221,7 @@ strong {
   margin-bottom: 20px;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
-/* ========================= */
-/* PLAYER LIST */
-/* ========================= */
+
 .player-list {
   display: flex;
   flex-direction: column;
@@ -286,12 +257,9 @@ strong {
   font-size: 16px;
 }
 
-/* ========================= */
-/* OVERLAY DETAIL PLAYER */
-/* ========================= */
 .overlay {
   position: fixed;
-  top: 15px; /* agar header tetap terlihat */
+  top: 15px;
   left: 0;
   width: 100%;
   height: calc(100%);
@@ -382,27 +350,18 @@ strong {
   text-align: left;
   display: block;
 }
-/* ========================= */
-/* RAPIKAN LABEL DAN COLON ‼️ */
-/* ========================= */
-/*.info-row {
- /* display: flex;
- /* align-items: center;
-/*}
 
-/* Kotak label */
 .info-label {
-  display: inline-block;      /* penting supaya bisa beri lebar tetap */
-  min-width: 50px;            /* lebar kotak label */
-  text-align: left;          /* label rata kanan */
-  margin-right: 0px;          /* jarak ke ':' */
+  display: inline-block;
+  min-width: 50px;
+  text-align: left;
+  margin-right: 0px;
 }
 
-/* Titik dua ':' */
 .colon {
-  margin-right: 0px;          /* jarak ':' ke value */
-  display: inline-block;      /* supaya margin efektif */
-  width: 8px;                /* lebar tetap untuk semua ':' sejajar */
+  margin-right: 0px;
+  display: inline-block;
+  width: 8px;
   text-align: center;
 }
 canvas {
@@ -417,17 +376,16 @@ canvas {
   border: none !important;
   width: 100px !important;
 }
-/* === PLAYER CONTROLS === */
+
 .player-controls {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px; /* jarak antara search dan sort */
+  gap: 10px;
   margin-bottom: 20px;
-  flex-wrap: nowrap; /* 🟨 agar tetap di satu baris */
+  flex-wrap: nowrap;
 }
 
-/* Search box */
 #searchInput {
   padding: 8px 12px;
   font-size: 16px;
@@ -443,7 +401,6 @@ canvas {
   box-shadow: 0 0 6px #f7b500;
 }
 
-/* Sort dropdown */
 #sortSelect {
   padding: 8px 12px;
   font-size: 16px;
@@ -459,16 +416,15 @@ canvas {
   transform: translateY(8);
 }
 
-/* Responsif di layar kecil */
 @media (max-width: 480px) {
   .player-controls {
-    flex-wrap: wrap; /* biar otomatis ke bawah kalau layar sempit */
+    flex-wrap: wrap;
   }
   #searchInput, #sortSelect {
     width: 100%;
   }
 }
-/* ✨ Animasi turun dari header */
+
 @keyframes dropFromHeader {
   0% {
     transform: translateY(-500px);
@@ -482,7 +438,6 @@ canvas {
   }
 }
 
-/* Terapkan animasi saat overlay muncul */
 .overlay.show .overlay-content {
   animation: dropFromHeader 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
