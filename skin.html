@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasang Skin</title>
+  <link rel="stylesheet" href="skin.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="menu-btn" id="menuBtn">☰</div>
+  <h2>Pasang Skin</h2>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <img src="logo.png" alt="Logo Victornz" class="sidebar-logo">
+    <h2>Victornz</h2>
+  </div>
+  <hr class="sidebar-divider">
+  <nav class="sidebar-menu">
+    <a href="beranda.html">
+      <img src="house.png" alt="Home Icon" class="icon"><span>Beranda</span>
+    </a>
+    <a href="rules.html">
+      <img src="book-text.png" alt="Rules Icon" class="icon"><span>Rules</span>
+    </a>
+    <a href="list.html">
+      <img src="clipboard-list.png" alt="List Icon" class="icon"><span>List Member</span>
+    </a>
+    <a href="fotbar.html">
+      <img src="camera.png" alt="Fotbar Icon" class="icon"><span>Fotbar</span>
+    </a>
+    <a href="build.html">
+      <img src="image.png" alt="Build Icon" class="icon"><span>Hasil Build</span>
+    </a>
+    <a href="skin.html" class="active">
+      <img src="shirt.png" alt="Skin Icon" class="icon"><span>Pasang Skin</span>
+    </a>
+    <a href="saran.html">
+      <img src="message-square-more.png" alt="Pesan Icon" class="icon"><span>Saran</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <p>© 2025 Victornz</p>
+  </div>
+</div>
+
+<!-- KONTEN PASANG SKIN -->
+<div class="content">
+  <h1><b>Pasang<br>Template</b></h1>
+
+  <div class="ytta">
+    <label><b>Pilih resolusi :</b></label>
+    <select id="model">
+      <option value="64">64 Pixel (Standar)</option>
+      <option value="128">128 Pixle (HD)</option>
+    </select>
+  </div>
+
+  <div class="ytta">
+    <label><b>Upload Skin :</b></label>
+    <input type="file" id="skinInput" accept="image/png"><br>
+  </div>
+
+  <button id="processBtn">Pasang Baju</button>
+  <button id="downloadBtn" disabled>Download Skin</button>
+
+  <div id="progressContainer">
+    <div id="progressBar"></div>
+  </div>
+  <div id="statusText"></div>
+
+  <canvas id="canvas" width="64" height="64"></canvas>
+</div>
+
+<!-- SCRIPT SIDEBAR -->
+<script>
+const sidebar = document.getElementById('sidebar');
+const menuBtn = document.getElementById('menuBtn');
+
+menuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sidebar.classList.toggle('active');
+});
+
+document.addEventListener('click', (e) => {
+  const isInsideSidebar = sidebar.contains(e.target);
+  const isMenuBtn = menuBtn.contains(e.target);
+  if (!isInsideSidebar && !isMenuBtn) {
+    sidebar.classList.remove('active');
+  }
+});
+
+document.querySelectorAll('.sidebar a').forEach(link => {
+  link.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+  });
+});
+</script>
+
+<!-- SCRIPT PASANG SKIN DENGAN VALIDASI RESOLUSI -->
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const skinInput = document.getElementById("skinInput");
+const processBtn = document.getElementById("processBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const modelSelect = document.getElementById("model");
+const progressContainer = document.getElementById("progressContainer");
+const progressBar = document.getElementById("progressBar");
+const statusText = document.getElementById("statusText");
+
+function updateProgress(percent, text) {
+  progressContainer.style.display = "block";
+  progressBar.style.width = percent + "%";
+  statusText.textContent = text;
+}
+
+function readFile(input, callback) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => callback(e.target.result);
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+processBtn.addEventListener("click", () => {
+  if (!skinInput.files[0]) {
+    alert("Silakan upload file skin dulu!");
+    return;
+  }
+
+  const res = modelSelect.value;
+  const outfitImg = new Image();
+  outfitImg.src = res === "128" ? "./template128.png" : "./template.png";
+
+  readFile(skinInput, (skinSrc) => {
+    const skinImg = new Image();
+    skinImg.onload = () => {
+      const width = skinImg.width;
+      const height = skinImg.height;
+
+      // Validasi ukuran skin
+      if ((width !== 64 && width !== 128) || (height !== 64 && height !== 128)) {
+        updateProgress(0, "❌ Skin tidak valid. Pastikan ukurannya 64x64 atau 128x128.");
+        return;
+      }
+
+      // Cek apakah resolusi sesuai dengan pilihan
+      if (res === "64" && width === 128) {
+        updateProgress(0, "⚠️ Skin ini beresolusi 128px. Ubah pilihan di atas ke 128px.");
+        return;
+      } else if (res === "128" && width === 64) {
+        updateProgress(0, "⚠️ Skin ini beresolusi 64px. Ubah pilihan di atas ke 64px.");
+        return;
+      }
+
+      updateProgress(50, "Memproses skin...");
+
+      outfitImg.onload = () => {
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(skinImg, 0, 0, width, height);
+        ctx.drawImage(outfitImg, 0, 0, width, height);
+
+        updateProgress(100, "✅ Selesai! Klik Download.");
+        downloadBtn.disabled = false;
+      };
+    };
+
+    skinImg.onerror = () => {
+      updateProgress(0, "❌ File skin tidak valid.");
+    };
+
+    skinImg.src = skinSrc;
+  });
+});
+
+downloadBtn.addEventListener("click", () => {
+  const link = document.createElement("a");
+  link.download = "TemplatVictornZ.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+});
+</script>
+
+</body>
+</html>

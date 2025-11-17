@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fotbar</title>
+  <link rel="stylesheet" href="fotbar.css">
+  <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="menu-btn" id="menuBtn">☰</div>
+  <h2>Fotbar</h2>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <img src="logo.png" alt="Logo Victornz" class="sidebar-logo">
+    <h2>Victornz</h2>
+  </div>
+  <hr class="sidebar-divider">
+  <nav class="sidebar-menu">
+    <a href="beranda.html"><img src="house.png" class="icon"><span>Beranda</span></a>
+    <a href="rules.html"><img src="book-text.png" class="icon"><span>Rules</span></a>
+    <a href="list.html"><img src="clipboard-list.png" class="icon"><span>List Member</span></a>
+    <a href="fotbar.html" class="active"><img src="camera.png" class="icon"><span>Fotbar</span></a>
+    <a href="build.html"><img src="image.png" class="icon"><span>Hasil Build</span></a>
+    <a href="skin.html"><img src="shirt.png" class="icon"><span>Pasang Skin</span></a>
+    <a href="pesan.html"><img src="message-square-more.png" class="icon"><span>Pesan</span></a>
+  </nav>
+  <div class="sidebar-footer">
+    <p>© 2025 Victornz</p>
+  </div>
+</div>
+
+<!-- KONTEN POLLOSAN -->
+<div class="content">
+  <h1>Fotbar</h1>
+</div>
+
+<!-- GALLERY (kosong — akan diisi otomatis dari Drive) -->
+<div id="gallery" class="gallery"></div>
+
+<!-- OVERLAY FOTO (tetap ada, dipakai oleh script) -->
+<div id="photoOverlay" class="photo-overlay" aria-hidden="true">
+  <button id="overlayClose" class="overlay-close" aria-label="Tutup">&times;</button>
+  <img id="overlayImage" src="" alt="">
+  <div id="overlayCaption" class="overlay-caption"></div>
+</div>
+
+<script>
+/* SIDEBAR + BASIC OVERLAY FUNCTIONS (sama seperti sebelumnya) */
+const sidebar = document.getElementById('sidebar');
+const menuBtn = document.getElementById('menuBtn');
+
+menuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  sidebar.classList.toggle('active');
+});
+document.addEventListener('click', (e) => {
+  const isInsideSidebar = sidebar.contains(e.target);
+  const isMenuBtn = menuBtn.contains(e.target);
+  if (!isInsideSidebar && !isMenuBtn) sidebar.classList.remove('active');
+});
+document.querySelectorAll('.sidebar a').forEach(link => {
+  link.addEventListener('click', () => sidebar.classList.remove('active'));
+});
+
+// overlay elements
+const photoOverlay = document.getElementById('photoOverlay');
+const overlayImage = document.getElementById('overlayImage');
+const overlayCaption = document.getElementById('overlayCaption');
+const overlayClose = document.getElementById('overlayClose');
+
+// openOverlay / closeOverlay dipertahankan agar skrip gallery menggunakannya
+function openOverlay(src, caption) {
+  const ov = document.getElementById('photoOverlay');
+  const img = document.getElementById('overlayImage');
+  const cap = document.getElementById('overlayCaption');
+  if (img) { img.src = src; img.alt = caption || ""; }
+  if (cap) cap.textContent = caption || '';
+  if (ov) {
+    ov.classList.add('open');
+    ov.setAttribute('aria-hidden','false');
+  }
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOverlay() {
+  const ov = document.getElementById('photoOverlay');
+  const img = document.getElementById('overlayImage');
+  if (ov) {
+    ov.classList.remove('open');
+    ov.setAttribute('aria-hidden','true');
+  }
+  if (img) img.src = '';
+  document.documentElement.style.overflow = '';
+  document.body.style.overflow = '';
+}
+
+overlayClose.addEventListener('click', closeOverlay);
+photoOverlay.addEventListener('click', (e) => { if (e.target === photoOverlay) closeOverlay(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeOverlay(); });
+
+</script>
+
+<!-- AUTO GALLERY FROM GOOGLE DRIVE (revisi: coba webContentLink -> alt=media -> uc view) -->
+<script>
+/* Konfigurasi — sudah kamu berikan */
+const GDRIVE_API_KEY = "AIzaSyDRtHB_tMauZeIrDkItSrtQuZ2salDfbUc";
+const GDRIVE_FOLDER_ID = "1jS_lG4KPMtc2i7cSjCjHwytPpc8jrkiM";
+
+/* Helper URLs */
+function driveFileAltMediaUrl(fileId, apiKey) {
+  return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+}
+function driveFileUcView(fileId) {
+  return `https://drive.google.com/uc?export=view&id=${fileId}`;
+}
+
+/* Ambil daftar gambar dari folder (dengan paginasi) */
+async function fetchAllImages(folderId, apiKey) {
+  const files = [];
+  let pageToken = null;
+  const baseFields = "nextPageToken,files(id,name,mimeType,thumbnailLink,webContentLink,webViewLink)";
+
+  do {
+    const q = encodeURIComponent(`'${folderId}' in parents and mimeType contains 'image/' and trashed=false`);
+    const fields = encodeURIComponent(baseFields);
+    const pageParam = pageToken ? `&pageToken=${pageToken}` : "";
+    const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}${pageParam}&pageSize=1000&key=${apiKey}`;
+
+    const res = await fetch(url);
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>"");
+      throw new Error(`Drive API error ${res.status}: ${txt}`);
+    }
+    const j = await res.json();
+    if (j.files && j.files.length) files.push(...j.files);
+    pageToken = j.nextPageToken;
+  } while (pageToken);
+
+  return files;
+}
+
+/* Buat frame dengan logika pemilihan src yang robust:
+   1) webContentLink (jika diberikan oleh API)
+   2) alt=media endpoint (Drive API)
+   3) uc?export=view fallback
+   Jika semua gagal, tampilkan placeholder SVG.
+*/
+/* --- GANTI fungsi createFrameWithRobustSrc dengan versi ini --- */
+function createFrameWithRobustSrc(f, apiKey) {
+  const frame = document.createElement("div");
+  frame.className = "frame";
+
+  const pin = document.createElement("div");
+  pin.className = "pin";
+  frame.appendChild(pin);
+
+  const a = document.createElement('a');
+  a.href = f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+
+  const img = document.createElement("img");
+  img.className = "foto";
+  img.alt = f.name || "";
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.crossOrigin = "anonymous";
+
+  // 1) coba sumber lokal dulu: images/<filename>
+  const safeName = (f.name || "").replace(/[#?].*$/,'');
+  const localPath = `images/${safeName}`;
+
+  const urlAltMedia = (id) => `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${apiKey}`;
+  const urlUcView = (id) => `https://drive.google.com/uc?export=view&id=${id}`;
+
+  const candidates = [
+    localPath,
+    f.webContentLink || null,
+    f.thumbnailLink || null,
+    urlAltMedia(f.id),
+    urlUcView(f.id)
+  ].filter(Boolean);
+
+  img._candidateIndex = 0;
+
+  img.onerror = function() {
+    if (img._candidateIndex < candidates.length - 1) {
+      img._candidateIndex++;
+      setTimeout(() => { img.src = candidates[img._candidateIndex]; }, 80);
+      return;
+    }
+    img.onerror = null;
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='360' height='260'>
+         <rect width='100%' height='100%' fill='#fff8dc'/>
+         <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='#999' font-family='sans-serif' font-size='16'>
+           Gagal memuat gambar
+         </text>
+       </svg>`
+    );
+  };
+
+  img.src = candidates[0];
+
+  a.appendChild(img);
+  frame.appendChild(a);
+
+  const title = document.createElement("div");
+  title.className = "judul-foto";
+  title.innerText = f.name || "";
+  frame.appendChild(title);
+
+  return frame;
+}
+
+
+/* Rotasi acak (sama logika) */
+function applyRandomRotationToFrames() {
+  const frames = document.querySelectorAll('.frame');
+  const minDeg = 0;
+  const maxDeg = 4;
+  let lastDeg = null;
+  frames.forEach(frame => {
+    let deg; let attempts = 0;
+    do {
+      const arah = Math.random() < 0.5 ? -1 : 1;
+      const besar = (Math.random() * (maxDeg - minDeg) + minDeg).toFixed(2);
+      deg = arah * besar;
+      attempts++;
+      if (attempts > 10) break;
+    } while (lastDeg !== null && Math.abs(deg - lastDeg) < 1.2);
+    lastDeg = deg;
+    frame.style.transform = `rotate(${deg}deg)`;
+    frame.style.transformOrigin = 'top center';
+  });
+}
+
+/* Bind event ke frame untuk hover & click overlay */
+function bindFrameEvents() {
+  const frames = document.querySelectorAll('.frame');
+  frames.forEach(frame => {
+    const img = frame.querySelector('.foto');
+    const titleEl = frame.querySelector('.judul-foto');
+    const title = titleEl ? titleEl.innerText.trim() : '';
+
+    // clone to remove previous listeners
+    const newImg = img.cloneNode(true);
+    img.parentNode.replaceChild(newImg, img);
+
+    frame.addEventListener('mouseenter', (e) => {
+      if ('ontouchstart' in window) return;
+      openOverlay(newImg.src, title);
+    });
+    frame.addEventListener('mouseleave', (e) => {
+      if ('ontouchstart' in window) return;
+      closeOverlay();
+    });
+
+    newImg.addEventListener('click', (e) => {
+      if (photoOverlay.classList.contains('open')) closeOverlay();
+      else openOverlay(newImg.src, title);
+      e.stopPropagation();
+    });
+  });
+}
+
+/* MAIN: ambil file dari Drive, kosongkan gallery lama, render dengan createFrameWithRobustSrc */
+(async function loadGalleryFromDrive() {
+  const galleryEl = document.getElementById("gallery");
+  if (!galleryEl) {
+    console.warn("Container gallery tidak ditemukan.");
+    return;
+  }
+
+  try {
+    if (!GDRIVE_API_KEY || !GDRIVE_FOLDER_ID) {
+      galleryEl.innerHTML = '<p style="text-align:center;color:#666">Konfigurasi Drive belum lengkap.</p>';
+      return;
+    }
+
+    const files = await fetchAllImages(GDRIVE_FOLDER_ID, GDRIVE_API_KEY);
+    const imageFiles = (files || []).filter(f => f.mimeType && f.mimeType.startsWith('image/'));
+    if (!imageFiles.length) {
+      galleryEl.innerHTML = '<p style="text-align:center;color:#666">Belum ada foto di folder Drive.</p>';
+      return;
+    }
+
+    // kosongkan gallery lama
+    galleryEl.innerHTML = "";
+
+    // render (urut berdasarkan nama — ubah sesuai kebutuhan)
+    imageFiles.sort((a,b) => a.name.localeCompare(b.name)).forEach((f, i) => {
+      const frame = createFrameWithRobustSrc(f, GDRIVE_API_KEY);
+      galleryEl.appendChild(frame);
+    });
+
+    applyRandomRotationToFrames();
+    bindFrameEvents();
+    console.log(`Gallery: dimuat ${imageFiles.length} file dari folder Drive.`);
+  } catch (err) {
+    console.error("Gagal memuat gallery dari Drive:", err);
+    galleryEl.innerHTML = `<p style="text-align:center;color:#c00">Gagal memuat foto dari Drive. (${err.message})</p>`;
+  }
+})();
+</script>
+
+</body>
+</html>

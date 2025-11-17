@@ -1,0 +1,384 @@
+@font-face {
+  font-family: 'minecraft'; /* Nama bebas */
+  src: url('minercraftory.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background-color: #fffbea;
+  justify-content: center;
+  line-height: 1.6;
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 48px;
+  background-color: #f7b500;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 60px;
+  box-sizing: border-box;
+  font-weight: 600;
+  font-size: 15px;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.menu-btn {
+  position: fixed;
+  top: 0px;
+  left: 14px;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  z-index: 11;
+  transition: transform 0.2s ease;
+}
+
+.menu-btn:hover {
+  transform: scale(1.1);
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -240px;
+  width: 220px;
+  height: 100%;
+  background-color: #1f1f1f;
+  color: #fff;
+  padding-top: 45px;
+  transition: left 0.3s ease;
+  box-sizing: border-box;
+  box-shadow: 3px 0 12px rgba(0, 0, 0, 0.4);
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 22px;
+  text-decoration: none;
+  color: #e5e5e5;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: all 0.25s ease;
+}
+
+.sidebar-menu {
+  margin-top: -300px;
+}
+
+@media (max-width: 768px) {
+  .sidebar-menu {
+    margin-top: -300px;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: flex-end;
+  gap: -2px;
+  padding: 18px 20px;
+  background-color: #1c1c1c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-sizing: border-box;
+}
+
+.sidebar-header img {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.sidebar-header:hover {
+  background-color: #252525;
+  transition: background-color 0.25s ease;
+}
+
+.sidebar a:hover {
+  background-color: #2b2b2b;
+  color: #f7b500;
+  transform: translateX(4px);
+}
+
+.sidebar a.active {
+  background-color: #2b2b2b;
+  border-left: 4px solid #f7b500;
+  color: #f7b500;
+}
+.sidebar-header img,
+.sidebar-logo {
+  width: 50px !important;
+  height: 50px !important;
+  border-radius: 10px;
+  object-fit: cover;
+  filter: none !important;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-logo:hover {
+  transform: scale(1.05);
+}
+
+.sidebar img {
+  width: 22px;
+  height: 22px;
+  filter: brightness(0) invert(1);
+  flex-shrink: 0;
+  transition: filter 0.25s ease;
+}
+
+.sidebar a:hover img {
+  filter: brightness(0) invert(0.8) sepia(1) hue-rotate(15deg) saturate(4);
+}
+
+.sidebar-footer {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: #aaa;
+  border-top: 1px solid #333;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .header {
+    height: 46px;
+    padding: 0 50px;
+    padding-left: 55px;
+  }
+
+  .menu-btn {
+    font-size: 26px;
+  }
+}
+.content {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+h1 {
+  color: #f59e0b;
+  font-family: minecraft;
+  text-align: center;
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+.gamers ul {
+  list-style: none;
+  padding: 0;
+}
+
+.gamers li {
+  background: #ffe599;
+  margin: 5px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.content {
+  animation: fadeIn 1s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+button:hover, li:hover {
+  transform: scale(1.05);
+  transition: 0.3s;
+}
+i {
+  font-style: italic;
+  color: #6b7280;
+  background: #fff4cc;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+b {
+  color: #f59e0b;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: #fff3bf;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+strong {
+  color: #f59e0b;
+  text-align: center;
+  font-size: 14px;
+  margin-bottom: 20px;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+.deskripsi {
+  color: #2c2c2c;
+}
+.bottom-section {
+  text-align: center;
+  margin: 50px 0 40px;
+}
+
+.bottom-text {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #f59e0b;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.btn-bottom {
+  background-color: #f7b500;
+  color: white;
+  text-decoration: none;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.btn-bottom:hover {
+  background-color: #e0a400;
+  transform: translateY(-2px);
+}
+
+.players-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+.player-info {
+  position: relative;
+  display: inline-block;
+}
+
+.player-btn {
+  background-color: #f7b500;
+  color: black;
+  font-weight: bold;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.player-btn:hover {
+  background-color: #e0a400;
+}
+
+.player-section {
+  margin-top: 0;
+}
+
+.player {
+  margin: 0;
+  position: relative;
+}
+
+.player-btn {
+  width: 100%;
+  background-color: #ffe08a;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 12px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 15px;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s
+  margin-bottom: 10px;
+  position: relative;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+}
+
+.player-btn:hover {
+  background-color: #ffe08a;
+  transform: scale(1.02);
+}
+
+.player-info {
+  max-height: 0;
+  overflow: hidden;
+  background: #fff5cc;
+  border-radius: 0 0 10px 10px;
+  margin-top: -10px;
+  margin-left: 8px;
+  width: 300px;
+  margin-bottom: 6px;
+  padding: 0 15px;
+  font-size: 14px;
+  color: #222;
+  line-height: 1.5;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    max-height 0.5s ease,
+    padding 0.4s ease,
+    opacity 0.4s ease,
+    transform 0.4s ease;
+  z-index: 1;
+}
+
+.player.active .player-info {
+  max-height: 120px;
+  padding: 10px 15px;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    max-height 0.45s ease,
+    opacity 0.35s ease 0.05s,
+    transform 0.4s ease;
+  margin-bottom: 20px;
+}
+
+.player-info p {
+  margin: 4px 0;
+}
+
+.player {
+  margin-bottom: -16px;
+}
+
+.player-section .player:first-child {
+  margin-top: 10px;
+}
