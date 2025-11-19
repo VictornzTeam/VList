@@ -207,10 +207,10 @@ function parseNumber(v){
   return isNaN(n) ? 0 : n;
 }
 function fmtRp(n){
-  try {
-    return new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Math.round(n));
-  } catch(e) { return n; }
+  n = Math.round(n);
+  return `${n} Million`;
 }
+
 function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 
 /* render card list (single view) */
