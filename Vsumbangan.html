@@ -66,24 +66,22 @@
       min-width:120px;
     }
 
-    /* small controls area (filter + refresh only) */
+    /* small controls area (filter + refresh + total) */
     .controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     .controls label { display:flex; align-items:center; gap:8px; }
+    .controls .spacer { margin-left: auto; display:flex; align-items:center; gap:10px; }
 
-    /* area untuk total (kanan) */
-    .controls .grand-total {
-      margin-left:auto;
-      background: transparent;
-      color:#0a7a00;
-      font-weight:800;
-      padding:6px 12px;
+    .grand-total {
+      background:#fffbea;
+      border:1px solid #f0d28a;
+      padding:8px 12px;
       border-radius:8px;
-      border:1px solid rgba(10,122,0,0.08);
-      min-width:160px;
+      font-weight:800;
+      color:#b36b00;
+      display:inline-block;
+      min-width:140px;
       text-align:right;
     }
-    .controls .grand-total .label { display:block; font-size:12px; color:#666; }
-    .controls .grand-total .value { display:block; font-size:16px; }
 
     /* responsive cards */
     @media(max-width:640px){
@@ -100,9 +98,8 @@
         max-width: 100%;
       }
 
-      /* pada layar kecil, letakkan grand total di bawah controls (agar tidak memecah baris) */
-      .controls { align-items:center; gap:8px; }
-      .controls .grand-total { margin-left:0; width:100%; text-align:left; padding-left:0; }
+      .controls { gap:6px; }
+      .controls .spacer { width:100%; justify-content:flex-start; margin-left:0; margin-top:8px; }
     }
   </style>
 </head>
@@ -139,16 +136,16 @@
   <div class="main-area">
     <div class="container page-header">
       <h1>Leaderboard Sumbangan</h1>
-      <p class="hint">Sumbangan dalam berbentuk mata uang server Prownetwork yang akan digunakan untuk pembangunan, beli bahan, sewa dan lain-lain.</p>
+      <p class="hint">Sumbangan dalam bentuk 'M' — data berasal dari Google Sheet.</p>
 
       <div class="controls">
         <label>Filter: <input id="filterName" placeholder="cari nama..."></label>
         <button id="refreshBtn">Refresh</button>
 
-        <!-- GRAND TOTAL: ditampilkan di sebelah kanan controls -->
-        <div class="grand-total" role="status" aria-live="polite">
-          <span class="label">Total Semua Sumbangan</span>
-          <span id="grandTotalValue" class="value">Memuat...</span>
+        <!-- spacer membuat total berada di kanan -->
+        <div class="spacer">
+          <div style="font-size:13px;color:#666">Grand Total:</div>
+          <div id="grandTotal" class="grand-total">—</div>
         </div>
       </div>
 
@@ -190,12 +187,18 @@
   })();
 })();
 
-/* ========== CONFIG: GViz URL dari Google Sheet (GID sesuai permintaan) ========== */
-/* gunakan gid=1689798336 yang kamu minta */
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=1689798336&tqx=out:json";
+/* ========== CONFIG: GViz URLs ========== */
+/* Sheet A: per-row data (Nama, Jumlah) -> aggregate per nama */
+const SHEET_LEADER_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=91664058&tqx=out:json";
+/* Sheet B: sudah berisi angka Grand Total (misal sheet kedua menyimpan jumlah keseluruhan)
+   Kita akan mencoba mengambil nilai numeric pertama yang ditemukan di response. */
+const SHEET_GRAND_URL  = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=1689798336&tqx=out:json";
 
 /* helper parse GViz response */
-function parseGviz(text){ return JSON.parse(text.replace(/^[^\{]*/, '').replace(/\);?$/, '')); }
+function parseGviz(text){
+  const jsonText = text.replace(/^[^\{]*/, '').replace(/\);?$/, '');
+  return JSON.parse(jsonText);
+}
 function tableToObjects(table){
   const cols = table.cols.map(c => (c.label || c.id || "").toString().trim());
   return table.rows.map(r=>{
@@ -208,58 +211,47 @@ function tableToObjects(table){
   });
 }
 
-/* detect fields - fleksibel */
+/* detect fields (Nama dan kolom jumlah) */
 function detectFields(cols, rowsSample){
   const lower = cols.map(c => (c||'').toString().trim().toLowerCase());
   let nameKey = null, mKey = null;
   for (let i=0;i<lower.length;i++){
     if (!nameKey && lower[i].includes('nama')) nameKey = cols[i];
-    if (!mKey && (lower[i].includes('total') || lower[i].includes('jumlah') || lower[i].includes('m'))) mKey = cols[i];
+    if (!mKey && (lower[i].includes('jumlah') || lower[i].includes('total') || lower[i].includes('m'))) mKey = cols[i];
   }
   if (!nameKey && cols.length) nameKey = cols[0];
   if (!mKey && cols.length>1) mKey = cols[1];
-
-  // quick data-driven fallback (jika kolom angka banyak di kolom tertentu)
-  if (rowsSample && rowsSample.length){
-    const scores = new Array(cols.length).fill(0);
-    rowsSample.forEach(r=>{
-      for (let i=0;i<cols.length;i++){
-        const k = cols[i] || `col${i}`;
-        const v = r[k];
-        if (v !== undefined && v !== null && v !== '') {
-          const n = parseNumber(v);
-          if (n && Math.abs(n) > 0) scores[i] += 1;
-        }
-      }
-    });
-    let bestIdx = -1, bestScore = 0;
-    for (let i=0;i<scores.length;i++){
-      if (scores[i] > bestScore) { bestScore = scores[i]; bestIdx = i; }
-    }
-    if (bestIdx >= 0) {
-      const candKey = cols[bestIdx];
-      if (!mKey || (scores[bestIdx] > (scores[cols.indexOf(mKey)] || 0))) mKey = candKey;
-    }
-  }
-
   return { nameKey, mKey };
 }
 
-/* parse angka dari variasi format */
+/* parse angka fleksibel */
 function parseNumber(v){
   if (v === null || v === undefined) return 0;
   if (typeof v === 'number') return v;
   let s = String(v).trim();
   if (!s) return 0;
   s = s.replace(/\s+/g,'');
-  if (s.indexOf('.') !== -1 && s.indexOf(',') !== -1) s = s.replace(/\./g,'').replace(',', '.');
-  else s = s.replace(/,/g,'');
+  if (s.indexOf('.') !== -1 && s.indexOf(',') !== -1) {
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else {
+    s = s.replace(/,/g,'');
+  }
   s = s.replace(/[^0-9\.\-]/g,'');
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
 
-/* render card list (single view) */
+/* format simple: tampilkan sebagai "NNN M" */
+function fmtM(n){
+  if (!n && n !== 0) return '—';
+  n = Math.round(n);
+  return `${n} M`;
+}
+
+/* XSS-safe escape */
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* RENDER cards */
 function renderCards(data){
   const result = document.getElementById('result');
   if (!data.length) { result.innerHTML = '<div class="loading">Belum ada data.</div>'; return; }
@@ -277,7 +269,7 @@ function renderCards(data){
         </div>
       </div>
       <div style="min-width:120px;text-align:right;">
-        <div class="donation-total">${Math.round(d.total) || 0} M</div>
+        <div class="donation-total">${fmtM(d.total)}</div>
       </div>
     </div>`;
   });
@@ -285,74 +277,88 @@ function renderCards(data){
   result.innerHTML = html;
 }
 
-/* escape sederhana */
-function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
-
-/* ambil sheet, agregasi dan render + hitung grand total */
-async function loadDonors(){
-  const result = document.getElementById('result');
-  const gvTotalEl = document.getElementById('grandTotalValue');
-  if (gvTotalEl) gvTotalEl.textContent = 'Memuat...';
-  result.innerHTML = '<div class="loading">Memuat data...</div>';
+/* Ambil Grand Total dari sheet kedua.
+   Strategy:
+   - parse GViz response, scan rows left-to-right top-to-bottom
+   - return first numeric cell found (parseNumber)
+*/
+async function fetchGrandTotal(){
   try {
-    const res = await fetch(SHEET_URL, { cache: 'no-store' });
-    if (!res.ok) {
-      if (res.status === 403 || res.status === 401) {
-        result.innerHTML = `<div class="error">Akses ditolak (kode ${res.status}). Pastikan Google Sheet diset "Anyone with the link — Viewer".</div>`;
-      } else {
-        result.innerHTML = `<div class="error">Gagal memuat Google Sheet (HTTP ${res.status}).</div>`;
-      }
-      if (gvTotalEl) gvTotalEl.textContent = '-';
-      throw new Error('HTTP ' + res.status);
-    }
-
+    const res = await fetch(SHEET_GRAND_URL, { cache:'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const txt = await res.text();
     const json = parseGviz(txt);
-    if (!json || !json.table) throw new Error('Response GViz tidak valid.');
+    if (!json || !json.table) throw new Error('GViz tidak berisi table');
+    const rows = tableToObjects(json.table);
+    for (const r of rows){
+      for (const key of Object.keys(r)){
+        const v = r[key];
+        const n = parseNumber(v);
+        if (n && !isNaN(n)) return n;
+      }
+    }
+    return 0;
+  } catch (e) {
+    console.warn('fetchGrandTotal error', e);
+    return null; // null -> pertanda error / tidak tersedia
+  }
+}
 
+/* Ambil data utama, agregasi per nama, render dan update grand total element */
+async function loadDonorsAndTotal(){
+  const result = document.getElementById('result');
+  result.innerHTML = '<div class="loading">Memuat data...</div>';
+  const grandEl = document.getElementById('grandTotal');
+  if (grandEl) grandEl.textContent = '—';
+
+  try {
+    // fetch leader sheet
+    const res = await fetch(SHEET_LEADER_URL, { cache:'no-store' });
+    if (!res.ok) {
+      document.getElementById('result').innerHTML = `<div class="error">Gagal memuat data (HTTP ${res.status}). Pastikan sheet diset "Anyone with the link".</div>`;
+      return;
+    }
+    const txt = await res.text();
+    const json = parseGviz(txt);
+    if (!json || !json.table) throw new Error('GViz leader tidak valid.');
     const rows = tableToObjects(json.table);
     const cols = json.table.cols.map(c => (c.label || c.id || '').toString().trim());
-    const sample = rows.slice(0,10);
-    const { nameKey, mKey } = detectFields(cols, sample);
-
+    const { nameKey, mKey } = detectFields(cols, rows.slice(0,6));
     if (!nameKey || !mKey) {
-      result.innerHTML = `<div class="error">Gagal deteksi kolom. Header ditemukan: <br><small style="color:#333">${cols.join(' | ')}</small><br>Pastikan header 'Nama' dan 'Jumlah/Total' ada di baris pertama.</div>`;
-      if (gvTotalEl) gvTotalEl.textContent = '-';
+      document.getElementById('result').innerHTML = `<div class="error">Gagal deteksi kolom pada sheet leader. Header: ${cols.join(' | ')}</div>`;
       return;
     }
 
-    // aggregate by name, and compute grand total
+    // aggregate per name
     const map = new Map();
-    let grandTotal = 0;
     rows.forEach(r => {
       const rawName = r[nameKey];
       const name = rawName !== undefined && rawName !== null ? String(rawName).trim() : '';
       if (!name) return;
       const rawM = r[mKey] !== undefined ? r[mKey] : '';
       const num = parseNumber(rawM);
-      grandTotal += num;
       const key = name.toLowerCase();
-      if (!map.has(key)) map.set(key, { name, total: 0, count: 0 });
+      if (!map.has(key)) map.set(key, { name, total: 0 });
       const obj = map.get(key);
       obj.total += num;
-      obj.count += 1;
     });
-
     const arr = Array.from(map.values()).sort((a,b) => b.total - a.total);
 
-    // update grand total display (format simple "123 M")
-    if (gvTotalEl) gvTotalEl.textContent = `${Math.round(grandTotal) || 0} M`;
-
-    // render list
+    // render
     renderCards(arr);
 
-  } catch (err) {
-    console.error('loadDonors error', err);
-    if (!result.innerHTML || result.innerHTML.trim() === '') {
-      result.innerHTML = `<div class="error">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
+    // fetch grand total and show on UI (non-blocking)
+    const grand = await fetchGrandTotal();
+    if (grand === null) {
+      grandEl.textContent = 'N/A';
+    } else {
+      grandEl.textContent = fmtM(grand);
     }
-    const gvTotalEl2 = document.getElementById('grandTotalValue');
-    if (gvTotalEl2) gvTotalEl2.textContent = '-';
+
+  } catch (err) {
+    console.error('loadDonorsAndTotal error', err);
+    document.getElementById('result').innerHTML = `<div class="error">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
+    if (grandEl) grandEl.textContent = 'N/A';
   }
 }
 
@@ -360,12 +366,10 @@ async function loadDonors(){
 document.addEventListener('DOMContentLoaded', () => {
   const refreshBtn = document.getElementById('refreshBtn');
   const filterName = document.getElementById('filterName');
-
-  if (refreshBtn) refreshBtn.addEventListener('click', loadDonors);
-  if (filterName) filterName.addEventListener('input', () => { setTimeout(loadDonors, 150); });
-
-  loadDonors();
-  setInterval(loadDonors, 1000 * 60 * 2); // refresh 2 menit
+  if (refreshBtn) refreshBtn.addEventListener('click', loadDonorsAndTotal);
+  if (filterName) filterName.addEventListener('input', () => setTimeout(loadDonorsAndTotal, 150));
+  loadDonorsAndTotal();
+  setInterval(loadDonorsAndTotal, 1000 * 60 * 2); // refresh 2 menit
 });
 </script>
 
