@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Vsumbangan — Victornz</title>
+  <!-- tetap memakai tema lama -->
+  <link rel="stylesheet" href="list.css">
+  <style>
+    /* override kecil supaya layout rapi (tidak mengubah tampilan utama) */
+    .container { max-width:1100px; margin:82px auto; padding:0 18px; }
+    h1{ font-family: minecraft, sans-serif; color:#d17f08; margin:0 0 8px; }
+    .loading, .error { padding:20px; text-align:center; color:#666; }
+    .amount { color:#0a7a00; font-weight:800; text-align:right; }
+
+    /* ====== CARD / LIST STYLE (tambahan, tidak merusak style lama) ====== */
+    .leaderboard-list { display:flex; flex-direction:column; gap:15px; margin-top:18px; }
+    .donation-item {
+      background:#fff8dc;
+      border:2px solid #f7b500;
+      padding:15px;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:15px;
+      transition:0.18s;
+    }
+    .donation-item:hover { background:#fff3b0; transform:scale(1.02); }
+
+    .rank-number {
+      font-family:minecraft;
+      font-size:28px;
+      width:56px;
+      text-align:center;
+      color:#f7b500;
+      flex:0 0 56px;
+    }
+
+    .donation-info {
+      display:flex;
+      flex-direction:column;
+      flex:1 1 auto;
+      min-width:0; /* penting untuk membuat ellipsis bekerja pada flex children */
+      margin-right:12px;
+    }
+
+    /* NAMA: paksa single-line + ellipsis */
+    .donation-name {
+      font-size:16px;
+      font-weight:700;
+      color:#333;
+
+      white-space: nowrap;      /* jangan pindah baris */
+      overflow: hidden;         /* potong jika overflow */
+      text-overflow: ellipsis;  /* tampilkan ... */
+      max-width: 520px;         /* batas lebar pada desktop (sesuaikan bila perlu) */
+    }
+
+    .donation-total {
+      color:#0a7a00;
+      font-size:15px;
+      font-weight:800;
+      margin-top:4px;
+      text-align:right;
+      min-width:120px;
+    }
+
+    /* small controls area (filter + refresh only) */
+    .controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .controls label { display:flex; align-items:center; gap:8px; }
+
+    /* area untuk total (kanan) */
+    .controls .grand-total {
+      margin-left:auto;
+      background: transparent;
+      color:#0a7a00;
+      font-weight:800;
+      padding:6px 12px;
+      border-radius:8px;
+      border:1px solid rgba(10,122,0,0.08);
+      min-width:160px;
+      text-align:right;
+    }
+    .controls .grand-total .label { display:block; font-size:12px; color:#666; }
+    .controls .grand-total .value { display:block; font-size:16px; }
+
+    /* responsive cards */
+    @media(max-width:640px){
+      .donation-item {
+        padding:12px;
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .rank-number { font-size:24px; width:48px; flex:0 0 48px; }
+      .donation-total { align-self:flex-end; min-width:0; }
+
+      /* biarkan nama tetap satu baris tetapi gunakan lebar penuh yang tersisa */
+      .donation-name {
+        max-width: 100%;
+      }
+
+      /* pada layar kecil, letakkan grand total di bawah controls (agar tidak memecah baris) */
+      .controls { align-items:center; gap:8px; }
+      .controls .grand-total { margin-left:0; width:100%; text-align:left; padding-left:0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="menu-btn" id="menuBtn">☰</div>
+  <h2>Vsumbangan</h2>
+</div>
+
+<!-- SIDEBAR (tetap sama) -->
+<div class="sidebar" id="sidebar" aria-hidden="true">
+  <div class="sidebar-header">
+    <img src="logo.png" alt="Logo Victornz" class="sidebar-logo">
+    <h2>Victornz</h2>
+  </div>
+  <hr class="sidebar-divider">
+  <nav class="sidebar-menu" role="navigation" aria-label="Sidebar main navigation">
+    <a href="beranda.html"><img src="house.png" class="icon"><span>Beranda</span></a>
+    <a href="rules.html"><img src="book-text.png" class="icon"><span>Rules</span></a>
+    <a href="list.html"><img src="clipboard-list.png" class="icon"><span>List Member</span></a>
+    <a href="fotbar.html"><img src="camera.png" class="icon"><span>Fotbar</span></a>
+    <a href="build.html"><img src="image.png" class="icon"><span>Hasil Build</span></a>
+    <a href="skin.html"><img src="shirt.png" class="icon"><span>Pasang Skin</span></a>
+    <a href="saran.html"><img src="message-square-more.png" class="icon"><span>Saran</span></a>
+    <a href="Vsumbangan.html" id="link-sumbangan"><img src="chart-pie.png" class="icon"><span>Sumbangan</span></a>
+  </nav>
+  <div class="sidebar-footer"><p>© 2025 Victornz</p></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content-wrap">
+  <div class="main-area">
+    <div class="container page-header">
+      <h1>Leaderboard Sumbangan</h1>
+      <p class="hint">Sumbangan dalam berbentuk mata uang server Prownetwork yang akan digunakan untuk pembangunan, beli bahan, sewa dan lain-lain.</p>
+
+      <div class="controls">
+        <label>Filter: <input id="filterName" placeholder="cari nama..."></label>
+        <button id="refreshBtn">Refresh</button>
+
+        <!-- GRAND TOTAL: ditampilkan di sebelah kanan controls -->
+        <div class="grand-total" role="status" aria-live="polite">
+          <span class="label">Total Semua Sumbangan</span>
+          <span id="grandTotalValue" class="value">Memuat...</span>
+        </div>
+      </div>
+
+      <!-- tempat hasil -->
+      <div id="result">
+        <div class="loading">Memuat data...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* SIDEBAR TOGGLE + ACTIVE LINK (tetap sama) */
+(function () {
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sidebar.classList.toggle('active');
+    sidebar.setAttribute('aria-hidden', sidebar.classList.contains('active') ? 'false' : 'true');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!sidebar.contains(e.target) && !menuBtn.contains(e.target)) {
+      sidebar.classList.remove('active');
+      sidebar.setAttribute('aria-hidden', 'true');
+    }
+  });
+
+  (function markActive(){
+    const links = document.querySelectorAll('.sidebar-menu a');
+    const current = (window.location.pathname.split('/').pop() || 'vsumbangan.html').toLowerCase();
+    links.forEach(a => {
+      const href = (a.getAttribute('href') || '').split('/').pop().toLowerCase();
+      if (href && href === current) a.classList.add('active'); else a.classList.remove('active');
+    });
+  })();
+})();
+
+/* ========== CONFIG: GViz URL dari Google Sheet (GID sesuai permintaan) ========== */
+/* gunakan gid=1689798336 yang kamu minta */
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=1689798336&tqx=out:json";
+
+/* helper parse GViz response */
+function parseGviz(text){ return JSON.parse(text.replace(/^[^\{]*/, '').replace(/\);?$/, '')); }
+function tableToObjects(table){
+  const cols = table.cols.map(c => (c.label || c.id || "").toString().trim());
+  return table.rows.map(r=>{
+    const obj = {};
+    r.c.forEach((cell,i)=>{
+      const key = cols[i] || `col${i}`;
+      obj[key] = (cell && (cell.v !== undefined)) ? cell.v : "";
+    });
+    return obj;
+  });
+}
+
+/* detect fields - fleksibel */
+function detectFields(cols, rowsSample){
+  const lower = cols.map(c => (c||'').toString().trim().toLowerCase());
+  let nameKey = null, mKey = null;
+  for (let i=0;i<lower.length;i++){
+    if (!nameKey && lower[i].includes('nama')) nameKey = cols[i];
+    if (!mKey && (lower[i].includes('total') || lower[i].includes('jumlah') || lower[i].includes('m'))) mKey = cols[i];
+  }
+  if (!nameKey && cols.length) nameKey = cols[0];
+  if (!mKey && cols.length>1) mKey = cols[1];
+
+  // quick data-driven fallback (jika kolom angka banyak di kolom tertentu)
+  if (rowsSample && rowsSample.length){
+    const scores = new Array(cols.length).fill(0);
+    rowsSample.forEach(r=>{
+      for (let i=0;i<cols.length;i++){
+        const k = cols[i] || `col${i}`;
+        const v = r[k];
+        if (v !== undefined && v !== null && v !== '') {
+          const n = parseNumber(v);
+          if (n && Math.abs(n) > 0) scores[i] += 1;
+        }
+      }
+    });
+    let bestIdx = -1, bestScore = 0;
+    for (let i=0;i<scores.length;i++){
+      if (scores[i] > bestScore) { bestScore = scores[i]; bestIdx = i; }
+    }
+    if (bestIdx >= 0) {
+      const candKey = cols[bestIdx];
+      if (!mKey || (scores[bestIdx] > (scores[cols.indexOf(mKey)] || 0))) mKey = candKey;
+    }
+  }
+
+  return { nameKey, mKey };
+}
+
+/* parse angka dari variasi format */
+function parseNumber(v){
+  if (v === null || v === undefined) return 0;
+  if (typeof v === 'number') return v;
+  let s = String(v).trim();
+  if (!s) return 0;
+  s = s.replace(/\s+/g,'');
+  if (s.indexOf('.') !== -1 && s.indexOf(',') !== -1) s = s.replace(/\./g,'').replace(',', '.');
+  else s = s.replace(/,/g,'');
+  s = s.replace(/[^0-9\.\-]/g,'');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+
+/* render card list (single view) */
+function renderCards(data){
+  const result = document.getElementById('result');
+  if (!data.length) { result.innerHTML = '<div class="loading">Belum ada data.</div>'; return; }
+
+  const filter = (document.getElementById('filterName').value || '').toLowerCase();
+  const filtered = filter ? data.filter(d => d.name.toLowerCase().includes(filter)) : data;
+
+  let html = '<div class="leaderboard-list" role="list">';
+  filtered.forEach((d,i)=>{
+    html += `<div class="donation-item" role="listitem" aria-label="Donor ${i+1}">
+      <div style="display:flex;align-items:center;gap:12px;flex:1 1 auto;">
+        <div class="rank-number">${i+1}</div>
+        <div class="donation-info">
+          <div class="donation-name">${escapeHtml(d.name)}</div>
+        </div>
+      </div>
+      <div style="min-width:120px;text-align:right;">
+        <div class="donation-total">${Math.round(d.total) || 0} M</div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  result.innerHTML = html;
+}
+
+/* escape sederhana */
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* ambil sheet, agregasi dan render + hitung grand total */
+async function loadDonors(){
+  const result = document.getElementById('result');
+  const gvTotalEl = document.getElementById('grandTotalValue');
+  if (gvTotalEl) gvTotalEl.textContent = 'Memuat...';
+  result.innerHTML = '<div class="loading">Memuat data...</div>';
+  try {
+    const res = await fetch(SHEET_URL, { cache: 'no-store' });
+    if (!res.ok) {
+      if (res.status === 403 || res.status === 401) {
+        result.innerHTML = `<div class="error">Akses ditolak (kode ${res.status}). Pastikan Google Sheet diset "Anyone with the link — Viewer".</div>`;
+      } else {
+        result.innerHTML = `<div class="error">Gagal memuat Google Sheet (HTTP ${res.status}).</div>`;
+      }
+      if (gvTotalEl) gvTotalEl.textContent = '-';
+      throw new Error('HTTP ' + res.status);
+    }
+
+    const txt = await res.text();
+    const json = parseGviz(txt);
+    if (!json || !json.table) throw new Error('Response GViz tidak valid.');
+
+    const rows = tableToObjects(json.table);
+    const cols = json.table.cols.map(c => (c.label || c.id || '').toString().trim());
+    const sample = rows.slice(0,10);
+    const { nameKey, mKey } = detectFields(cols, sample);
+
+    if (!nameKey || !mKey) {
+      result.innerHTML = `<div class="error">Gagal deteksi kolom. Header ditemukan: <br><small style="color:#333">${cols.join(' | ')}</small><br>Pastikan header 'Nama' dan 'Jumlah/Total' ada di baris pertama.</div>`;
+      if (gvTotalEl) gvTotalEl.textContent = '-';
+      return;
+    }
+
+    // aggregate by name, and compute grand total
+    const map = new Map();
+    let grandTotal = 0;
+    rows.forEach(r => {
+      const rawName = r[nameKey];
+      const name = rawName !== undefined && rawName !== null ? String(rawName).trim() : '';
+      if (!name) return;
+      const rawM = r[mKey] !== undefined ? r[mKey] : '';
+      const num = parseNumber(rawM);
+      grandTotal += num;
+      const key = name.toLowerCase();
+      if (!map.has(key)) map.set(key, { name, total: 0, count: 0 });
+      const obj = map.get(key);
+      obj.total += num;
+      obj.count += 1;
+    });
+
+    const arr = Array.from(map.values()).sort((a,b) => b.total - a.total);
+
+    // update grand total display (format simple "123 M")
+    if (gvTotalEl) gvTotalEl.textContent = `${Math.round(grandTotal) || 0} M`;
+
+    // render list
+    renderCards(arr);
+
+  } catch (err) {
+    console.error('loadDonors error', err);
+    if (!result.innerHTML || result.innerHTML.trim() === '') {
+      result.innerHTML = `<div class="error">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
+    }
+    const gvTotalEl2 = document.getElementById('grandTotalValue');
+    if (gvTotalEl2) gvTotalEl2.textContent = '-';
+  }
+}
+
+/* events */
+document.addEventListener('DOMContentLoaded', () => {
+  const refreshBtn = document.getElementById('refreshBtn');
+  const filterName = document.getElementById('filterName');
+
+  if (refreshBtn) refreshBtn.addEventListener('click', loadDonors);
+  if (filterName) filterName.addEventListener('input', () => { setTimeout(loadDonors, 150); });
+
+  loadDonors();
+  setInterval(loadDonors, 1000 * 60 * 2); // refresh 2 menit
+});
+</script>
+
+</body>
+</html>
