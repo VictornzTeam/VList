@@ -28,6 +28,15 @@
     }
     .donation-item:hover { background:#fff3b0; transform:scale(1.02); }
 
+    /* kiri: nomor + nama (selaras dengan mockup) */
+    .left-block {
+      display:flex;
+      align-items:center;
+      gap:16px;
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
     .rank-number {
       font-family:minecraft;
       font-size:28px;
@@ -40,12 +49,9 @@
     .donation-info {
       display:flex;
       flex-direction:column;
-      flex:1 1 auto;
-      min-width:0; /* penting untuk membuat ellipsis bekerja pada flex children */
-      margin-right:12px;
+      min-width:0; /* penting untuk ellipsis */
     }
 
-    /* NAMA: paksa single-line + ellipsis */
     .donation-name {
       font-size:16px;
       font-weight:700;
@@ -54,34 +60,41 @@
       white-space: nowrap;      /* jangan pindah baris */
       overflow: hidden;         /* potong jika overflow */
       text-overflow: ellipsis;  /* tampilkan ... */
-      max-width: 520px;         /* batas lebar pada desktop (sesuaikan bila perlu) */
+      max-width: 520px;
+    }
+
+    .donation-meta {
+      font-size:13px;
+      color:#666;
+      margin-top:6px;
     }
 
     .donation-total {
       color:#0a7a00;
-      font-size:15px;
+      font-size:18px;
       font-weight:800;
-      margin-top:4px;
+      margin-left:12px;
       text-align:right;
       min-width:120px;
     }
 
-    /* small controls area (filter + refresh + total) */
+    /* kotak total global di kanan atas */
+    .total-box {
+      float:right;
+      background: #fbfff6;
+      border:1px solid #eef2e6;
+      padding:14px 18px;
+      border-radius:10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      text-align:right;
+      margin-top:6px;
+    }
+    .total-box .label { color:#666; font-weight:700; font-size:13px; }
+    .total-box .value { color:#0a7a00; font-weight:900; font-size:20px; margin-top:6px; }
+
+    /* small controls area (filter + refresh only) */
     .controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
     .controls label { display:flex; align-items:center; gap:8px; }
-    .controls .spacer { margin-left: auto; display:flex; align-items:center; gap:10px; }
-
-    .grand-total {
-      background:#fffbea;
-      border:1px solid #f0d28a;
-      padding:8px 12px;
-      border-radius:8px;
-      font-weight:800;
-      color:#b36b00;
-      display:inline-block;
-      min-width:140px;
-      text-align:right;
-    }
 
     /* responsive cards */
     @media(max-width:640px){
@@ -93,14 +106,11 @@
       .rank-number { font-size:24px; width:48px; flex:0 0 48px; }
       .donation-total { align-self:flex-end; min-width:0; }
 
-      /* biarkan nama tetap satu baris tetapi gunakan lebar penuh yang tersisa */
-      .donation-name {
-        max-width: 100%;
-      }
-
-      .controls { gap:6px; }
-      .controls .spacer { width:100%; justify-content:flex-start; margin-left:0; margin-top:8px; }
+      .donation-name { max-width:100%; }
+      .total-box { float:none; margin:12px 0 0 0; text-align:left; }
     }
+    /* bersihkan float */
+    .clearfix::after { content:""; display:block; clear:both; }
   </style>
 </head>
 <body>
@@ -134,19 +144,21 @@
 <!-- MAIN CONTENT -->
 <div class="content-wrap">
   <div class="main-area">
-    <div class="container page-header">
+    <div class="container page-header clearfix">
       <h1>Leaderboard Sumbangan</h1>
-      <p class="hint">Sumbangan dalam bentuk 'M' — data berasal dari Google Sheet.</p>
+      <p class="hint">Sumbangan akan digunakan untuk pembangunan, beli bahan, sewa dan lain-lain.</p>
 
-      <div class="controls">
+      <!-- Total Global di kanan -->
+      <div class="total-box" id="totalBox">
+        <div class="label">Total Semua Sumbangan</div>
+        <div class="value" id="grandTotal">—</div>
+      </div>
+
+      <div style="clear:both"></div>
+
+      <div class="controls" style="margin-top:10px;">
         <label>Filter: <input id="filterName" placeholder="cari nama..."></label>
         <button id="refreshBtn">Refresh</button>
-
-        <!-- spacer membuat total berada di kanan -->
-        <div class="spacer">
-          <div style="font-size:13px;color:#666">Grand Total:</div>
-          <div id="grandTotal" class="grand-total">—</div>
-        </div>
       </div>
 
       <!-- tempat hasil -->
@@ -159,7 +171,7 @@
 </div>
 
 <script>
-/* SIDEBAR TOGGLE + ACTIVE LINK (tetap sama) */
+/* SIDEBAR TOGGLE + ACTIVE LINK */
 (function () {
   const menuBtn = document.getElementById('menuBtn');
   const sidebar = document.getElementById('sidebar');
@@ -188,11 +200,10 @@
 })();
 
 /* ========== CONFIG: GViz URLs ========== */
-/* Sheet A: per-row data (Nama, Jumlah) -> aggregate per nama */
-const SHEET_LEADER_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=91664058&tqx=out:json";
-/* Sheet B: sudah berisi angka Grand Total (misal sheet kedua menyimpan jumlah keseluruhan)
-   Kita akan mencoba mengambil nilai numeric pertama yang ditemukan di response. */
-const SHEET_GRAND_URL  = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=1689798336&tqx=out:json";
+/* sheet utama (Nama & Jumlah rows) */
+const SHEET_ROWS_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=91664058&tqx=out:json";
+/* sheet grand total (precomputed total) */
+const SHEET_GRANDTOTAL_URL = "https://docs.google.com/spreadsheets/d/1yYP89ep0aNEXjd8RHuf_jFsXPWpXUkSBVy_DyqtU6eM/gviz/tq?gid=1689798336&tqx=out:json";
 
 /* helper parse GViz response */
 function parseGviz(text){
@@ -211,20 +222,20 @@ function tableToObjects(table){
   });
 }
 
-/* detect fields (Nama dan kolom jumlah) */
-function detectFields(cols, rowsSample){
+/* detect fields — prefer header 'Nama' and 'Jumlah' (or 'Jumlah Sumbangan') */
+function detectFields(cols){
   const lower = cols.map(c => (c||'').toString().trim().toLowerCase());
-  let nameKey = null, mKey = null;
+  let nameKey = null, jumlahKey = null;
   for (let i=0;i<lower.length;i++){
     if (!nameKey && lower[i].includes('nama')) nameKey = cols[i];
-    if (!mKey && (lower[i].includes('jumlah') || lower[i].includes('total') || lower[i].includes('m'))) mKey = cols[i];
+    if (!jumlahKey && (lower[i].includes('jumlah') || lower[i].includes('sumbangan') || lower[i].includes('jumlah sumbangan'))) jumlahKey = cols[i];
   }
   if (!nameKey && cols.length) nameKey = cols[0];
-  if (!mKey && cols.length>1) mKey = cols[1];
-  return { nameKey, mKey };
+  if (!jumlahKey && cols.length>1) jumlahKey = cols[1];
+  return { nameKey, jumlahKey };
 }
 
-/* parse angka fleksibel */
+/* parse angka */
 function parseNumber(v){
   if (v === null || v === undefined) return 0;
   if (typeof v === 'number') return v;
@@ -240,18 +251,14 @@ function parseNumber(v){
   const n = parseFloat(s);
   return isNaN(n) ? 0 : n;
 }
-
-/* format simple: tampilkan sebagai "NNN M" */
-function fmtM(n){
-  if (!n && n !== 0) return '—';
+function fmtMillion(n){
+  // tampilkan misal: 20 M
   n = Math.round(n);
   return `${n} M`;
 }
-
-/* XSS-safe escape */
 function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
 
-/* RENDER cards */
+/* render card list (nama di kiri dekat nomor; total di kanan) */
 function renderCards(data){
   const result = document.getElementById('result');
   if (!data.length) { result.innerHTML = '<div class="loading">Belum ada data.</div>'; return; }
@@ -262,114 +269,112 @@ function renderCards(data){
   let html = '<div class="leaderboard-list" role="list">';
   filtered.forEach((d,i)=>{
     html += `<div class="donation-item" role="listitem" aria-label="Donor ${i+1}">
-      <div style="display:flex;align-items:center;gap:12px;flex:1 1 auto;">
+      <div class="left-block">
         <div class="rank-number">${i+1}</div>
         <div class="donation-info">
           <div class="donation-name">${escapeHtml(d.name)}</div>
+          <div class="donation-meta">${d.count} entri</div>
         </div>
       </div>
-      <div style="min-width:120px;text-align:right;">
-        <div class="donation-total">${fmtM(d.total)}</div>
-      </div>
+      <div class="donation-total">${fmtMillion(d.total)}</div>
     </div>`;
   });
   html += '</div>';
   result.innerHTML = html;
 }
 
-/* Ambil Grand Total dari sheet kedua.
-   Strategy:
-   - parse GViz response, scan rows left-to-right top-to-bottom
-   - return first numeric cell found (parseNumber)
-*/
-async function fetchGrandTotal(){
+/* ambil dan render grand total (sheet khusus) */
+async function loadGrandTotal(){
   try {
-    const res = await fetch(SHEET_GRAND_URL, { cache:'no-store' });
+    const res = await fetch(SHEET_GRANDTOTAL_URL, {cache:'no-store'});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const txt = await res.text();
     const json = parseGviz(txt);
-    if (!json || !json.table) throw new Error('GViz tidak berisi table');
+    if (!json || !json.table) throw new Error('Tidak ada table pada response grand total');
+
     const rows = tableToObjects(json.table);
-    for (const r of rows){
-      for (const key of Object.keys(r)){
-        const v = r[key];
-        const n = parseNumber(v);
-        if (n && !isNaN(n)) return n;
-      }
+    // ambil angka di sel pertama baris pertama jika ada
+    let val = 0;
+    if (rows.length && Object.values(rows[0]).length) {
+      const first = Object.values(rows[0])[0];
+      val = parseNumber(first);
     }
-    return 0;
-  } catch (e) {
-    console.warn('fetchGrandTotal error', e);
-    return null; // null -> pertanda error / tidak tersedia
+    document.getElementById('grandTotal').textContent = fmtMillion(val);
+  } catch (err) {
+    console.warn('loadGrandTotal error', err);
+    document.getElementById('grandTotal').textContent = '—';
   }
 }
 
-/* Ambil data utama, agregasi per nama, render dan update grand total element */
-async function loadDonorsAndTotal(){
+/* ambil sheet utama (Nama & Jumlah), agregasi dan render */
+async function loadDonors(){
   const result = document.getElementById('result');
   result.innerHTML = '<div class="loading">Memuat data...</div>';
-  const grandEl = document.getElementById('grandTotal');
-  if (grandEl) grandEl.textContent = '—';
-
   try {
-    // fetch leader sheet
-    const res = await fetch(SHEET_LEADER_URL, { cache:'no-store' });
+    const res = await fetch(SHEET_ROWS_URL, { cache: 'no-store' });
     if (!res.ok) {
-      document.getElementById('result').innerHTML = `<div class="error">Gagal memuat data (HTTP ${res.status}). Pastikan sheet diset "Anyone with the link".</div>`;
-      return;
+      if (res.status === 403 || res.status === 401) {
+        result.innerHTML = `<div class="error">Akses ditolak (kode ${res.status}). Pastikan Google Sheet diset "Anyone with the link — Viewer".</div>`;
+      } else {
+        result.innerHTML = `<div class="error">Gagal memuat Google Sheet (HTTP ${res.status}).</div>`;
+      }
+      throw new Error('HTTP ' + res.status);
     }
+
     const txt = await res.text();
     const json = parseGviz(txt);
-    if (!json || !json.table) throw new Error('GViz leader tidak valid.');
+    if (!json || !json.table) throw new Error('Response GViz tidak berisi table.');
+
     const rows = tableToObjects(json.table);
     const cols = json.table.cols.map(c => (c.label || c.id || '').toString().trim());
-    const { nameKey, mKey } = detectFields(cols, rows.slice(0,6));
-    if (!nameKey || !mKey) {
-      document.getElementById('result').innerHTML = `<div class="error">Gagal deteksi kolom pada sheet leader. Header: ${cols.join(' | ')}</div>`;
+    const { nameKey, jumlahKey } = detectFields(cols);
+
+    if (!nameKey || !jumlahKey) {
+      result.innerHTML = `<div class="error">Gagal deteksi kolom. Header: ${cols.join(' | ')}. Pastikan ada kolom 'Nama' dan kolom 'Jumlah'.</div>`;
       return;
     }
 
-    // aggregate per name
+    // aggregate by name
     const map = new Map();
     rows.forEach(r => {
       const rawName = r[nameKey];
       const name = rawName !== undefined && rawName !== null ? String(rawName).trim() : '';
       if (!name) return;
-      const rawM = r[mKey] !== undefined ? r[mKey] : '';
-      const num = parseNumber(rawM);
+      const rawJ = r[jumlahKey] !== undefined ? r[jumlahKey] : '';
+      const num = parseNumber(rawJ);
       const key = name.toLowerCase();
-      if (!map.has(key)) map.set(key, { name, total: 0 });
+      if (!map.has(key)) map.set(key, { name, total: 0, count: 0 });
       const obj = map.get(key);
       obj.total += num;
+      obj.count += 1;
     });
+
     const arr = Array.from(map.values()).sort((a,b) => b.total - a.total);
 
-    // render
     renderCards(arr);
 
-    // fetch grand total and show on UI (non-blocking)
-    const grand = await fetchGrandTotal();
-    if (grand === null) {
-      grandEl.textContent = 'N/A';
-    } else {
-      grandEl.textContent = fmtM(grand);
-    }
-
   } catch (err) {
-    console.error('loadDonorsAndTotal error', err);
-    document.getElementById('result').innerHTML = `<div class="error">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
-    if (grandEl) grandEl.textContent = 'N/A';
+    console.error('loadDonors error', err);
+    if (!result.innerHTML || result.innerHTML.trim() === '') {
+      result.innerHTML = `<div class="error">Gagal memuat data: ${escapeHtml(err.message)}</div>`;
+    }
   }
 }
 
-/* events */
+/* event bindings */
 document.addEventListener('DOMContentLoaded', () => {
   const refreshBtn = document.getElementById('refreshBtn');
   const filterName = document.getElementById('filterName');
-  if (refreshBtn) refreshBtn.addEventListener('click', loadDonorsAndTotal);
-  if (filterName) filterName.addEventListener('input', () => setTimeout(loadDonorsAndTotal, 150));
-  loadDonorsAndTotal();
-  setInterval(loadDonorsAndTotal, 1000 * 60 * 2); // refresh 2 menit
+
+  if (refreshBtn) refreshBtn.addEventListener('click', () => { loadDonors(); loadGrandTotal(); });
+  if (filterName) filterName.addEventListener('input', () => { setTimeout(loadDonors, 150); });
+
+  // initial load
+  loadGrandTotal();
+  loadDonors();
+
+  // auto refresh every 2 minutes
+  setInterval(() => { loadGrandTotal(); loadDonors(); }, 1000 * 60 * 2);
 });
 </script>
 
